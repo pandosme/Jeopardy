@@ -1,0 +1,38 @@
+{
+  "development": {
+	"gamemaster": "master",
+    "mongodb": {
+      "uri": "mongodb://10.13.8.20:27017/jeopardy",
+      "options": {
+        "useNewUrlParser": true,
+        "useUnifiedTopology": true
+      }
+    },
+	"timers": {
+		"questionSplashSeconds": 15,
+		"playerAnswerSeconds": 10
+	},
+    "audioClips": {
+      "playerBuzzed": "C:\\Users\\fredj\\jeopardy\\notify.wav",
+      "correctAnswer": "C:\\Users\\fredj\\jeopardy\\tada.wav",
+      "wrongAnswer": "C:\\Users\\fredj\\jeopardy\\error.wav",
+      "timerTimeout": "C:\\Users\\fredj\\jeopardy\\ringout.wav"
+    },
+    "port": 3210
+  },
+  "production": {
+	"gamemaster": "master",
+    "mongodb": {
+      "uri": "mongodb://10.13.8.20:27017/jeopardy",
+      "options": {
+        "useNewUrlParser": true,
+        "useUnifiedTopology": true
+      }
+    },
+	"timers": {
+		"questionSplashSeconds": 15,
+		"playerAnswerSeconds": 10
+	},
+    "port": 3210
+  }
+}

@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Jeopardy Game</title>
+    <link rel="stylesheet" type="text/css" href="style.css">
+</head>
+<body>
+    <div id="connection-status"></div>
+
+    <!-- Registration View -->
+    <div id="registration-view">
+        <h1>Jeopardy Registration</h1>
+		<form id="registration-form">
+			<label for="name-input">Enter your name:</label>
+			<input type="text" 
+				   id="name-input" 
+				   required 
+				   minlength="2" 
+				   maxlength="20"
+				   title="Use 2-20 characters: letters (including åäö), numbers, spaces, or hyphens">
+			<button type="submit">Register</button>
+		</form>
+    </div>
+
+	<div id="player-view" style="display: none;">
+		<h1 class="player-header">
+			<span id="player-name"></span>
+			<span id="player-score">0</span>
+		</h1>
+		<div class="buzzer-container">
+			<button id="buzzer" disabled>BUZZ</button>
+		</div>
+		<button id="leave-game-button" class="leave-button">Leave Game</button>		
+	</div>
+
+    <!-- Game Master View -->
+	<div id="gamemaster-view" style="display: none;">
+		<div class="gm-container">
+			<div class="gm-content">
+				<div id="gm-question" class="gm-question"></div>
+				<div id="gm-answer" class="gm-answer"></div>
+				<div id="buzzed-player" class="buzzed-player"></div>
+				<div class="gm-buttons">
+					<div class="answer-buttons">
+						<button id="correct-button" class="gm-button correct">CORRECT</button>
+						<button id="incorrect-button" class="gm-button wrong">WRONG</button>
+					</div><br/><br/>
+					<button id="new-game-button" class="gm-button new">NEW GAME</button>
+				</div>
+			</div>
+			<div class="scoreboard">
+				<div class="scoreboard-title">SCORES</div>
+				<div id="players-scores" class="players-scores"></div>
+			</div>
+			<button id="open-adjust-score-modal">Adjust Score</button>
+		</div>
+		<button id="leave-game-button" class="leave-button">Leave Game</button>		
+	</div>
+
+    <!-- Game Board View -->
+    <div id="gameboard-view" style="display: none;">
+        <div id="game-board"></div>
+        <div id="question-splash" class="hidden">
+            <div id="question-text"></div>
+            <div id="timer-countdown"></div>
+        </div>
+		<div id="final-score-splash" class="hidden">
+		  <h1>Final Scores</h1>
+		  <div id="final-scores-container"></div>
+		</div>
+    </div>
+
+    <!-- Select Game View -->
+	<div id="select-game-view" style="display: none;">
+		<div class="select-game-container">
+			<div class="games-area">
+				<h1>Select Game</h1>
+				<div id="games-grid"></div>
+			</div>
+			<div class="players-area">
+				<h2>Players</h2>
+				<div id="players-list"></div>
+			</div>
+		</div>
+	</div>
+
+	<div id="adjust-score-modal" class="modal">
+	  <div class="modal-content">
+		<span class="close-modal">&times;</span>
+		<h2>Adjust Player Score</h2>
+		<form id="adjust-score-form">
+		  <div class="form-group">
+			<label for="player-select">Select Player:</label>
+			<select id="player-select" required>
+			  <!-- Players will be dynamically populated -->
+			</select>
+		  </div>
+		  <div class="form-group">
+			<label>Adjustment Type:</label>
+			<div>
+			  <input type="radio" id="add-score" name="adjustment-type" value="add" checked>
+			  <label for="add-score">Add</label>
+			  <input type="radio" id="subtract-score" name="adjustment-type" value="subtract">
+			  <label for="subtract-score">Subtract</label>
+			</div>
+		  </div>
+		  <div class="form-group">
+			<label>Score Value:</label>
+			<div>
+			  <input type="radio" id="score-100" name="score-value" value="100" required>
+			  <label for="score-100">$100</label>
+			  <input type="radio" id="score-200" name="score-value" value="200">
+			  <label for="score-200">$200</label>
+			  <input type="radio" id="score-300" name="score-value" value="300">
+			  <label for="score-300">$300</label>
+			  <input type="radio" id="score-400" name="score-value" value="400">
+			  <label for="score-400">$400</label>
+			  <input type="radio" id="score-500" name="score-value" value="500">
+			  <label for="score-500">$500</label>
+			</div>
+		  </div>
+		  <button type="submit">Adjust Score</button>
+		</form>
+	  </div>
+	</div>
+
+
+    <!-- Scripts -->
+    <script src="/socket.io/socket.io.js"></script>
+    <script src="client.js"></script>
+</body>
+</html>

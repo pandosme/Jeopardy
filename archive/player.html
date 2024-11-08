@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Jeopardy Player</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+            text-align: center;
+        }
+        #connection-status {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            padding: 10px;
+            text-align: center;
+            font-weight: bold;
+            z-index: 1000;
+        }
+        #connection-status.connected {
+            background-color: #4CAF50;
+            color: white;
+        }
+        #connection-status.disconnected {
+            background-color: #F44336;
+            color: white;
+        }
+        #connection-status.reconnecting {
+            background-color: #FFC107;
+            color: black;
+        }
+        #connection-status.error {
+            background-color: #F44336;
+            color: white;
+        }
+        #player-registration, #game-interface {
+            padding: 20px;
+        }
+        #player-name-display {
+            font-size: 24px;
+            margin-bottom: 10px;
+        }
+        #player-score, #status-message {
+            font-size: 18px;
+            margin-bottom: 20px;
+        }
+        #buzzer {
+            width: 200px;
+            height: 200px;
+            border-radius: 50%;
+            font-size: 24px;
+            border: none;
+            outline: none;
+            margin: 20px auto;
+            display: block;
+        }
+        #buzzer:disabled {
+            background-color: #cccccc;
+            color: #666666;
+        }
+        #buzzer.active {
+            background-color: #ff0000;
+            color: white;
+        }
+        input[type="text"], button[type="submit"] {
+            font-size: 18px;
+            padding: 10px;
+            margin: 10px 0;
+            width: 100%;
+            max-width: 300px;
+        }
+    </style>
+</head>
+<body>
+    <div id="connection-status"></div>
+    <div id="player-registration">
+        <h2>Player Registration</h2>
+        <form id="registration-form">
+            <input type="text" id="player-name" placeholder="Enter your name" required>
+            <button type="submit">Register</button>
+        </form>
+    </div>
+
+    <div id="game-interface" style="display: none;">
+        <h1 id="player-name-display"></h1>
+        <p>Your Score: $<span id="player-score">0</span></p>
+        <p id="status-message"></p>
+        <button id="buzzer" disabled>BUZZ IN</button>
+    </div>
+
+<div id="debug-output" style="position: fixed; bottom: 0; left: 0; right: 0; height: 100px; overflow-y: scroll; background-color: #f0f0f0; padding: 10px;"></div>
+
+    <script src="/socket.io/socket.io.js"></script>
+    <script src="/js/player.js"></script>
+</body>
+</html>

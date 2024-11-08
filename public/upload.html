@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Upload New Game</title>
+    <style>
+        #drop-area {
+            border: 2px dashed #ccc;
+            border-radius: 20px;
+            width: 480px;
+            padding: 20px;
+            text-align: center;
+        }
+        #drop-area.highlight {
+            border-color: purple;
+        }
+   #status {
+        margin-top: 20px;
+        padding: 15px;
+        border-radius: 5px;
+        max-width: 480px;
+    }
+
+    .error-message {
+        background-color: rgba(255, 0, 0, 0.1);
+        border: 1px solid #ff0000;
+        padding: 15px;
+        border-radius: 5px;
+        color: #ff0000;
+    }
+
+    .error-message h3 {
+        margin-top: 0;
+        margin-bottom: 10px;
+        color: #ff0000;
+    }
+
+    .error-message ul {
+        margin: 0;
+        padding-left: 20px;
+    }
+
+    .error-message li {
+        margin: 5px 0;
+    }
+
+    .success-message {
+        background-color: rgba(0, 255, 0, 0.1);
+        border: 1px solid #00ff00;
+        padding: 15px;
+        border-radius: 5px;
+        color: #00ff00;
+    }
+
+    .status-message {
+        background-color: rgba(255, 255, 255, 0.1);
+        border: 1px solid #ffffff;
+        padding: 15px;
+        border-radius: 5px;
+        color: #ffffff;
+    }		
+		
+    </style>
+</head>
+<body>
+    <h1>Upload New Game</h1>
+    <div id="drop-area">
+        <p>Drag and drop a CSV file here, or click to select a file</p>
+        <input type="file" id="fileElem" accept=".csv" style="display:none">
+    </div>
+    <div id="status"></div>
+
+    <script src="upload.js"></script>
+</body>
+</html>

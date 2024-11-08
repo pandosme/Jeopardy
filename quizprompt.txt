@@ -1,0 +1,42 @@
+Jag vill ha hjälp att skapa frågor Jeoperdy spel.  Det skall vara 25 frågor i fem olika kategorier med 5 olika svårighetsgrader [100,200,300,400,500].
+Detta är jeaopardy så frågorna (Question) är "svaret" som spelledaren ger till spelarna och svaret (Answer) är den fråga som motspelaren skall ge som svar.
+Temat kommer att anges.  Om inga kategorier är angivna så skall du hitta på dessa.
+Värdet (Value) och svårighetsgraden på frågorna inom en kategori är
+	100 - Mellanstadiet
+	200 - Högstadiet
+	300 - Allmänbildad vuxen
+	400 - God kännedom pm ömnet
+	500 - Expert på ämnet
+
+Viktigt:
+- Spelledarens "svar" måste vara ett direkt på svaret som den fråga som spelarean svara som fråga.
+- Undvik att samma ord förekommer i kategori, frågan och svaret.
+  Exempel: Denna typ av dator kan du bära med dig.,Vad är en bärbar dator?
+- Inga citat-tecken (") får färekomma i frågor eller svar.
+- Frågan och svaret måste valideras att det är korrekt.
+- Det skall rimligtvis bara finnas en rätt fråga som spelaren svarar på spelledarens "svar"
+- Försök att göra spelledarens svar så kort och koncist som möjligt.
+- Resultatet måste vara i CSV format med följande kolumner:  Category, Value, Question, Answer
+  
+Svara OK om du förstår.
+
+Jag behöver hjälp med att skapa frågor till ett Jeopardy-spel. I Jeopardy ger spelledaren "svaret" (Question) till spelarna, och spelarna ska formulera sitt svar som en fråga (Answer). Temat för spelet kommer att anges i kommande prompter. Om inga kategorier är angivna, var vänlig och skapa lämpliga kategorier baserat på temat. Värdet (Value) och svårighetsgraden på frågorna inom en kategori är följande:
+
+    100 - Mellanstadienivå
+    200 - Högstadienivå
+    300 - Allmänbildad vuxennivå
+    400 - God kännedom om ämnet
+    500 - Expertnivå inom ämnet
+
+Viktiga riktlinjer:
+- Spelledarens svar (Question) samt spelarens fråga (Answer) skall vara kort och koncist.
+- Spelledaresn svar (Question) måste vara ett direkt svar på spelarens fråga (Answer)
+- Personnamn, låttitlar eller andra väsentliga termer får endast förekomma i antingen frågan eller svaret, aldrig i båda. Detta för att undvika att göra det för enkelt för spelarna att gissa rätt svar.
+- Verifiera att frågan som spelare skall ange som svar är korrekt
+  Spelare skall inte kunna kritiserat att svaret var fel.
+- Spelledararens svar (Question) skall rimligtvis bara kunna svaras med en fråga (Anwser)
+  Exempel på ett dåligt svar från spelledaren är "Vad kan man inte bära på huvudet?".  Här finns tusetnals saker att ange som svar.
+- Citattecken (") får inte förekomma i varken frågan eller svaret.
+- Resultatet måste presenteras i CSV-format med följande kolumner: Category, Value, Question, Answer
+
+Svara OK om du förstår.

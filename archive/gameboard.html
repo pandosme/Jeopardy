@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Game Board</title>
+    <link rel="stylesheet" href="/css/styles.css">
+</head>
+<body>
+    <div class="container">
+        <h1 id="game-title">Game Board</h1>
+        <div id="game-board">
+            <!-- Categories and questions will be dynamically inserted here -->
+        </div>
+        <div id="player-info">
+            <h2>Player: <span id="current-player"></span></h2>
+        </div>
+    </div>
+	
+	<div id="question-splash" class="splash-screen hidden">
+		<div id="question-text"></div>
+	</div>
+
+    <script src="/socket.io/socket.io.js"></script>
+    <script src="/js/gameboard.js"></script>
+</body>
+</html>
