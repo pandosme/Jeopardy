@@ -1,0 +1,26 @@
+Category,Value,Question,Answer
+Programmeringsspråk,100,Populärt språk för webbutveckling på klientsidan.,Vad är JavaScript?
+Programmeringsspråk,200,Används ofta för vetenskapliga beräkningar och dataanalys.,Vad är Python?
+Programmeringsspråk,300,Utvecklat av Microsoft för att skapa Windows-applikationer.,Vad är C#?
+Programmeringsspråk,400,Känt för sin effektivitet och lågnivåkontroll.,Vad är C++?
+Programmeringsspråk,500,Funktionellt språk som används i telekommunikation och bankväsende.,Vad är Erlang?
+Datastrukturer,100,Samling av element i en specifik ordning.,Vad är en array?
+Datastrukturer,200,Följer principen först in först ut.,Vad är en (FIFO) kö?
+Datastrukturer,300,Hierarkisk struktur med förälder- och barnnoder.,Vad är ett träd?
+Datastrukturer,400,Effektiv för att söka och infoga element.,Vad är en hashtabell?
+Datastrukturer,500,Använder prioritet för att bestämma ordning.,Vad är en prioritetskö?
+Algoritmer,100,Söker efter ett specifikt värde i en sorterad lista.,Vad är binärsökning?
+Algoritmer,200,Sorterar genom att jämföra och byta intilliggande element.,Vad är bubbelsortering?
+Algoritmer,300,Hittar den kortaste vägen mellan noder i en viktad graf.,Vad är Dijkstras algoritm?
+Algoritmer,400,Effektiv sorteringsalgoritm som delar upp och sammanfogar dellistor.,Vad är mergesort?
+Algoritmer,500,Löser problem genom att prova alla möjliga kombinationer.,Vad är brute force?
+Designmönster,100,Skapar objekt utan att specificera den exakta klassen.,Vad är fabriksmetoden?
+Designmönster,200,Definierar ett familj av algoritmer som kan bytas ut mot varandra.,Vad är strategimönstret?
+Designmönster,300,Tillåter ett objekt att ändra beteende när dess interna tillstånd ändras.,Vad är tillståndsmönstret?
+Designmönster,400,Separerar konstruktion av ett komplext objekt från dess representation.,Vad är byggarmönstret?
+Designmönster,500,Tillhandahåller ett gränssnitt för att skapa familjer av relaterade objekt.,Vad är abstraktfabrik?
+Webbteknologier,100,Märkspråk för att strukturera webbsidor.,Vad är HTML?
+Webbteknologier,200,Stilmall för att utforma utseendet på webbsidor.,Vad är CSS?
+Webbteknologier,300,Tillåter dynamiskt innehåll och användarinteraktion på webbsidor.,Vad är JavaScript?
+Webbteknologier,400,Protokoll för säker kommunikation över internet.,Vad är HTTPS?
+Webbteknologier,500,Metod för att skicka och hämta data från en server utan att ladda om sidan.,Vad är AJAX?

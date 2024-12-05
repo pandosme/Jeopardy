@@ -67,8 +67,13 @@ socket.on('userRegistered', (data) => {
     if (data.role === 'gamemaster') {
         showView('gamemaster');
         socket.emit('requestPlayerList');
-        setupLeaveButton(); // Add this
-        setupGameMasterButtons(); // Add this function call		
+        setupLeaveButton();
+		setupAudioTesting();
+        setupGameMasterButtons(); // Add this function call
+		const serverIPElement = document.createElement('div');
+		serverIPElement.id = 'server-ip';
+		serverIPElement.textContent = `Server IP: ${data.serverIP}`;
+		document.getElementById('gamemaster-view').prepend(serverIPElement);
     }
 
     if (data.role === 'board') {
@@ -286,22 +291,20 @@ socket.on('enableBuzzersForPlayers', (data) => {
 });
 
 socket.on('updateScores', (scores) => {
-    if (userRole === 'gamemaster') {
-        const playersScores = document.getElementById('players-scores');
-        if (playersScores) {
-            playersScores.innerHTML = '';
-            Object.entries(scores)
-                .sort((a, b) => b[1] - a[1]) // Sort by score descending
-                .forEach(([name, score]) => {
-                    const scoreItem = document.createElement('div');
-                    scoreItem.className = 'player-score-item';
-                    scoreItem.innerHTML = `
-                        <span>${name}</span>
-                        <span>$${score}</span>
-                    `;
-                    playersScores.appendChild(scoreItem);
-                });
-        }
+    const playersScores = document.getElementById('players-scores');
+    if (playersScores) {
+        playersScores.innerHTML = '';
+        Object.entries(scores)
+            .sort((a, b) => b[1] - a[1]) // Sort by score descending
+            .forEach(([name, score]) => {
+                const scoreItem = document.createElement('div');
+                scoreItem.className = 'player-score-item';
+                scoreItem.innerHTML = `
+                    <span>${name}</span>
+                    <span>$${score}</span>
+                `;
+                playersScores.appendChild(scoreItem);
+            });
     }
 });
 
@@ -347,10 +350,9 @@ function showView(viewName) {
 }
 
 function playAudio(clipName) {
-  if (audioClips[clipName]) {
-    const audio = new Audio(audioClips[clipName]);
-    audio.play().catch(e => console.error('Error playing audio:', e));
-  }
+    if (audioClips[clipName]) {
+        socket.emit('playAudio', { clipName });
+    }
 }
 
 function updateConnectionStatus(status, message) {
@@ -555,7 +557,8 @@ function markQuestionAsAnswered(category, value) {
 function setupGameMasterButtons() {
     const correctButton = document.getElementById('correct-button');
     const incorrectButton = document.getElementById('incorrect-button');
-	setupScoreAdjustmentModal();
+    // Remove this line
+    // setupScoreAdjustmentModal();
 
     if (correctButton) {
         correctButton.addEventListener('click', () => {
@@ -692,10 +695,27 @@ function setupScoreAdjustmentModal() {
   const modal = document.getElementById('adjust-score-modal');
   const closeModalButton = modal.querySelector('.close-modal');
   const playerSelect = document.getElementById('player-select');
+  const adjustmentTypeSelect = document.getElementById('adjustment-type');
+  const scoreValueSelect = document.getElementById('score-value');
   const adjustScoreForm = document.getElementById('adjust-score-form');
 
-  // Populate player select dropdown
-  function populatePlayerSelect(playerList) {
+  // Explicitly hide the modal when the page loads
+  modal.style.display = 'none';
+
+  // Show modal when button clicked
+  openModalButton.addEventListener('click', () => {
+    // Reset form
+    playerSelect.selectedIndex = 0;
+    adjustmentTypeSelect.selectedIndex = 0;
+    scoreValueSelect.selectedIndex = 0;
+    
+    // Request player list from server
+    socket.emit('requestPlayerList');
+  });
+
+  // Listen for player list update
+  socket.on('playerListUpdate', (playerList) => {
+    // Populate player select dropdown
     playerSelect.innerHTML = '<option value="">Select a player</option>';
     playerList.forEach(player => {
       const option = document.createElement('option');
@@ -703,23 +723,21 @@ function setupScoreAdjustmentModal() {
       option.textContent = `${player.name} ($${player.score || 0})`;
       playerSelect.appendChild(option);
     });
-  }
 
-  // Show modal when button clicked
-  openModalButton.addEventListener('click', () => {
-    // Request player list from server
-    socket.emit('requestPlayerList');
-  });
-
-  // Listen for player list update
-  socket.on('playerListUpdate', (playerList) => {
-    populatePlayerSelect(playerList);
+    // Show modal
     modal.style.display = 'block';
   });
 
-  // Close modal
+  // Close modal when clicking close button
   closeModalButton.addEventListener('click', () => {
     modal.style.display = 'none';
+  });
+
+  // Close modal when clicking outside
+  modal.addEventListener('click', (event) => {
+    if (event.target === modal) {
+      modal.style.display = 'none';
+    }
   });
 
   // Handle form submission
@@ -727,8 +745,14 @@ function setupScoreAdjustmentModal() {
     e.preventDefault();
     
     const playerId = playerSelect.value;
-    const adjustmentType = document.querySelector('input[name="adjustment-type"]:checked').value;
-    const scoreValue = parseInt(document.querySelector('input[name="score-value"]:checked').value);
+    const adjustmentType = adjustmentTypeSelect.value;
+    const scoreValue = parseInt(scoreValueSelect.value);
+
+    // Validate inputs
+    if (!playerId || !adjustmentType || !scoreValue) {
+      alert('Please fill in all fields');
+      return;
+    }
 
     // Determine score change direction
     const scoreChange = adjustmentType === 'add' ? scoreValue : -scoreValue;
@@ -785,6 +809,32 @@ if (buzzerButton) {
             disableBuzzer();
         }
     });
+}
+
+function setupAudioTesting() {
+  const testAudioButton = document.createElement('button');
+  testAudioButton.textContent = 'Test Audio';
+  testAudioButton.id = 'test-audio-button';
+  testAudioButton.className = 'gm-button new'; // Match existing button styling
+  
+  // Prepend the button to the top of the gamemaster view
+  const gamemasterView = document.getElementById('gamemaster-view');
+  gamemasterView.insertBefore(testAudioButton, gamemasterView.firstChild);
+
+  testAudioButton.addEventListener('click', () => {
+    const audioClipNames = [
+      'playerBuzzed', 
+      'correctAnswer', 
+      'wrongAnswer', 
+      'timerTimeout'
+    ];
+
+    audioClipNames.forEach((clipName, index) => {
+      setTimeout(() => {
+        playAudio(clipName);
+      }, index * 2000); // 2-second pause between sounds
+    });
+  });
 }
 
 if (correctButton && incorrectButton && nextButton) {

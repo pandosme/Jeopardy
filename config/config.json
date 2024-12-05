@@ -13,10 +13,10 @@
 		"playerAnswerSeconds": 10
 	},
     "audioClips": {
-      "playerBuzzed": "C:\\Users\\fredj\\jeopardy\\notify.wav",
-      "correctAnswer": "C:\\Users\\fredj\\jeopardy\\tada.wav",
-      "wrongAnswer": "C:\\Users\\fredj\\jeopardy\\error.wav",
-      "timerTimeout": "C:\\Users\\fredj\\jeopardy\\ringout.wav"
+      "playerBuzzed": "audio/buzzed.wav",
+      "correctAnswer": "audio/correct.wav",
+      "wrongAnswer": "audio/wrong.wav",
+      "timerTimeout": "audio/ringout.wav"
     },
     "port": 3210
   },

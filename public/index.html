@@ -48,29 +48,32 @@
 						<button id="incorrect-button" class="gm-button wrong">WRONG</button>
 					</div><br/><br/>
 					<button id="new-game-button" class="gm-button new">NEW GAME</button>
+					<br/><br/>
+					<button id="open-adjust-score-modal" class="gm-button new">Adjust Score</button>
 				</div>
 			</div>
+		</div>
+		<button id="leave-game-button" class="leave-button">Leave Game</button>
+	</div>
+
+    <!-- Game Board View -->
+	<div id="gameboard-view" style="display: none;">
+		<div class="gameboard-container">
+			<div id="game-board" class="game-board"></div>
 			<div class="scoreboard">
 				<div class="scoreboard-title">SCORES</div>
 				<div id="players-scores" class="players-scores"></div>
 			</div>
-			<button id="open-adjust-score-modal">Adjust Score</button>
 		</div>
-		<button id="leave-game-button" class="leave-button">Leave Game</button>		
-	</div>
-
-    <!-- Game Board View -->
-    <div id="gameboard-view" style="display: none;">
-        <div id="game-board"></div>
-        <div id="question-splash" class="hidden">
-            <div id="question-text"></div>
-            <div id="timer-countdown"></div>
-        </div>
+		<div id="question-splash" class="hidden">
+			<div id="question-text"></div>
+			<div id="timer-countdown"></div>
+		</div>
 		<div id="final-score-splash" class="hidden">
-		  <h1>Final Scores</h1>
-		  <div id="final-scores-container"></div>
+			<h1>Final Scores</h1>
+			<div id="final-scores-container"></div>
 		</div>
-    </div>
+	</div>
 
     <!-- Select Game View -->
 	<div id="select-game-view" style="display: none;">
@@ -86,46 +89,45 @@
 		</div>
 	</div>
 
-	<div id="adjust-score-modal" class="modal">
+	<div id="adjust-score-modal" class="modal" style="display: none;">
 	  <div class="modal-content">
 		<span class="close-modal">&times;</span>
 		<h2>Adjust Player Score</h2>
 		<form id="adjust-score-form">
 		  <div class="form-group">
-			<label for="player-select">Select Player:</label>
-			<select id="player-select" required>
-			  <!-- Players will be dynamically populated -->
-			</select>
-		  </div>
-		  <div class="form-group">
-			<label>Adjustment Type:</label>
-			<div>
-			  <input type="radio" id="add-score" name="adjustment-type" value="add" checked>
-			  <label for="add-score">Add</label>
-			  <input type="radio" id="subtract-score" name="adjustment-type" value="subtract">
-			  <label for="subtract-score">Subtract</label>
+			<div class="form-row">
+			  <label for="player-select">Player:</label>
+			  <select id="player-select" required>
+				<!-- Players will be dynamically populated -->
+			  </select>
 			</div>
-		  </div>
-		  <div class="form-group">
-			<label>Score Value:</label>
-			<div>
-			  <input type="radio" id="score-100" name="score-value" value="100" required>
-			  <label for="score-100">$100</label>
-			  <input type="radio" id="score-200" name="score-value" value="200">
-			  <label for="score-200">$200</label>
-			  <input type="radio" id="score-300" name="score-value" value="300">
-			  <label for="score-300">$300</label>
-			  <input type="radio" id="score-400" name="score-value" value="400">
-			  <label for="score-400">$400</label>
-			  <input type="radio" id="score-500" name="score-value" value="500">
-			  <label for="score-500">$500</label>
+			<div class="form-row">
+			  <label for="adjustment-type">Type:</label>
+			  <select id="adjustment-type" required>
+				<option value="">Select Adjustment Type</option>
+				<option value="add">Add</option>
+				<option value="subtract">Subtract</option>
+			  </select>
+			</div>
+			<div class="form-row">
+			  <label for="score-value">Value:</label>
+			  <select id="score-value" required>
+				<option value="">Select Score Value</option>
+				<option value="100">$100</option>
+				<option value="200">$200</option>
+				<option value="300">$300</option>
+				<option value="400">$400</option>
+				<option value="500">$500</option>
+				<option value="600">$600</option>
+				<option value="800">$800</option>
+				<option value="1000">$1000</option>
+			  </select>
 			</div>
 		  </div>
 		  <button type="submit">Adjust Score</button>
 		</form>
 	  </div>
 	</div>
-
 
     <!-- Scripts -->
     <script src="/socket.io/socket.io.js"></script>

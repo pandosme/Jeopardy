@@ -1,12 +1,33 @@
+const fs = require('fs');
+const os = require('os');
 const express = require('express');
 const http = require('http');
 const { Server } = require('socket.io');
-const mongoose = require('mongoose');
 const path = require('path');
 const config = require('./config/config.json')[process.env.NODE_ENV || 'development'];
 const { Quiz, Question } = require('./model/Question');
 const csv = require('csv-parser');
 const { Readable } = require('stream');
+const { exec } = require('child_process');
+
+const player = require('play-sound')({
+  players: [{
+    player: 'vlc',
+    cmd: '"C:\\Program Files\\VideoLAN\\VLC\\vlc.exe"',  // Note the quotes around the path
+    args: ['-I', 'dummy', '--play-and-exit', '--quiet']
+  }]
+});
+
+function playServerAudio(clipName) {
+    if (audioClips[clipName]) {
+        const audioPath = path.join(__dirname, audioClips[clipName]);
+        wavPlayer.play({
+            path: audioPath,
+        }).catch((error) => {
+            console.error(`Error playing audio ${clipName}:`, error);
+        });
+    }
+}
 
 // Constants
 const gameMasterName = config.gamemaster;
@@ -26,6 +47,7 @@ const io = new Server(server, {
     allowUpgrades: true
 });
 
+
 // Game state
 let currentQuiz = null;
 let gameInProgress = false;
@@ -37,13 +59,6 @@ let questions = {};
 let debugEnabled = false;
 let scoringHistory = [];
 
-// MongoDB connection
-mongoose.connect(config.mongodb.uri)
-    .then(() => console.log('Connected to MongoDB'))
-    .catch(err => {
-        console.error('Error connecting to MongoDB:', err);
-        process.exit(1);
-    });
 
 // Express middleware
 app.use(express.json());
@@ -55,14 +70,598 @@ app.get('/upload', (req, res) => { res.sendFile(path.join(__dirname, 'public', '
 
 app.get('/api/quizzes', async (req, res) => {
     try {
-        console.log('Fetching quizzes from database...');
-        const quizzes = await Quiz.find({}, 'name description');
-        console.log('Fetched quizzes:', quizzes);
+        const quizzes = await Quiz.find();
         res.json(quizzes);
     } catch (error) {
         console.error('Error fetching quizzes:', error);
         res.status(500).json({ error: 'Internal Server Error' });
     }
+});
+
+app.post('/api/upload-game', async (req, res) => {
+    try {
+        const { csv: csvData, fileName } = req.body;
+        if (!csvData || !fileName) {
+            return res.status(400).json({ success: false, message: 'Missing CSV data or filename' });
+        }
+
+        const quizName = fileName.replace('.csv', '');
+        const quizPath = path.join(__dirname, 'quizzes', fileName);
+
+        // Write CSV to file
+        fs.writeFileSync(quizPath, csvData);
+
+        console.log(`Uploaded quiz "${quizName}" successfully`);
+        res.json({ 
+            success: true, 
+            message: `Quiz uploaded successfully`, 
+            questionCount: csvData.split('\n').length - 1 // Subtract header row
+        });
+    } catch (error) {
+        console.error('Upload error:', error);
+        res.status(500).json({ success: false, message: error.message });
+    }
+});
+
+// Game data loading function
+async function loadGameData(quizId) {
+    if (!quizId) {
+        throw new Error('No quiz ID provided');
+    }
+    
+    try {
+        console.log('Loading quiz data for ID:', quizId);
+        currentQuiz = await Quiz.findById(quizId);
+        if (!currentQuiz) {
+            throw new Error('Quiz not found');
+        }
+
+        const allQuestions = await Question.find({ quiz: quizId });
+        if (allQuestions.length === 0) {
+            throw new Error('No questions found for this quiz');
+        }
+
+        // Reset all players' scores to 0
+        Object.values(players).forEach(player => {
+            player.score = 0;
+        });
+
+        // If we already have questions loaded, preserve their answered state
+        const existingAnsweredState = {};
+        if (questions) {
+            Object.keys(questions).forEach(category => {
+                questions[category].forEach(q => {
+                    if (q.answered) {
+                        const key = `${category}-${q.value}`;
+                        existingAnsweredState[key] = true;
+                    }
+                });
+            });
+        }
+        
+        categories = [...new Set(allQuestions.map(q => q.category))];
+        questions = {};
+        
+        // Initialize questions with preserved answered state
+		categories.forEach(category => {
+		  questions[category] = allQuestions
+			.filter(q => q.category === category)
+			.map(q => ({
+			  ...q, // Spread the question object directly
+			  answered: existingAnsweredState[`${category}-${q.value}`] || false
+			}));
+		});
+
+        // Start periodic score updates
+        startPeriodicScoreUpdates();
+
+        return true;
+    } catch (error) {
+        console.error('Error loading game data:', error);
+        throw error;
+    }
+}
+
+// Add this function to stop periodic score updates when needed
+function stopPeriodicScoreUpdates() {
+    if (global.scoreUpdateInterval) {
+        clearInterval(global.scoreUpdateInterval);
+        global.scoreUpdateInterval = null;
+    }
+}
+
+// Helper functions
+function getScores() {
+    return Object.values(players).reduce((scores, player) => {
+        scores[player.name] = player.score;
+        return scores;
+    }, {});
+}
+
+function validateQuestion(data) {
+    return data && 
+           typeof data.category === 'string' && 
+           typeof data.value === 'number' &&
+           questions[data.category];
+}
+
+function broadcastPlayers() {
+    io.emit('playersUpdate', Object.values(players).map(p => ({
+        name: p.name
+    })));
+}
+
+function broadcastPlayerList() {
+    const playerList = Object.values(players).map(p => ({
+        name: p.name,
+        socketId: p.socketId
+    }));
+    console.log('Broadcasting player list:', playerList);
+    io.emit('playerListUpdate', playerList);
+}
+
+function areAllQuestionsAnswered() {
+  return Object.values(questions).every(categoryQuestions => 
+    categoryQuestions.every(question => question.answered)
+  );
+}
+
+function getFinalScores() {
+  return Object.entries(players)
+    .map(([id, player]) => ({ name: player.name, score: player.score }))
+    .sort((a, b) => b.score - a.score);
+}
+
+function resetGame() {
+  currentQuiz = null;
+  gameInProgress = false;
+  currentQuestion = null;
+  buzzedInPlayer = null;
+  categories = [];
+  questions = {};
+  // Reset player scores
+  Object.values(players).forEach(player => {
+    player.score = 0;
+  });
+}
+
+function findLastScoringEvent(playerId) {
+  // This is a placeholder function. You'll need to implement the logic to find the last scoring event.
+  // This might involve keeping a log of scoring events or using your existing game state.
+  // For now, let's return a dummy event:
+  return {
+    playerId: playerId,
+    scoreChange: 100 // Assume the last change was +100 points
+  };
+}
+
+
+function getLocalIPAddress() {
+  const networkInterfaces = os.networkInterfaces();
+  for (const interfaceName in networkInterfaces) {
+    for (const interface of networkInterfaces[interfaceName]) {
+      // Check for IPv4 addresses that are:
+      // 1. Not internal (loopback)
+      // 2. Not link-local (starting with 169.254)
+      // 3. Not a private IP address
+	  console.log(interface.address);
+      if (interface.family === 'IPv4' && 
+          !interface.internal && 
+          !interface.address.startsWith('169.254.') && 
+          !interface.address.startsWith('127.')) {
+        return interface.address;
+      }
+    }
+  }
+  return 'Unknown IP';
+}
+
+// Socket.IO event handlers
+io.on('connection', (socket) => {
+    console.log('New client connected:', socket.id);
+
+    socket.on('keepalive', () => {
+        socket.emit('keepalive');
+    });
+
+    socket.emit('audioClipPaths', audioClips);
+	
+	socket.on('registerUser', (userName) => {
+		console.log('User registration attempt:', userName);
+		if (userName === config.gamemaster) {
+			socket.emit('userRegistered', { role: 'gamemaster', serverIP: getLocalIPAddress() });
+		} else if (userName === 'board') {
+			socket.emit('userRegistered', { role: 'board', gameInProgress });
+		} else {
+			const existingPlayer = Object.values(players).find(p => p.name === userName);
+			if (existingPlayer) {
+				existingPlayer.socketId = socket.id;
+				socket.emit('userRegistered', {
+					role: 'player',
+					name: userName,
+					score: existingPlayer.score
+				});
+			} else {
+				players[socket.id] = {
+					name: userName,
+					score: 0,
+					socketId: socket.id
+				};
+				socket.emit('userRegistered', {
+					role: 'player',
+					name: userName,
+					score: 0
+				});
+			}
+			// Broadcast updated player list to all clients
+			const playerList = Object.values(players).map(p => ({
+				name: p.name,
+				socketId: p.socketId
+			}));
+			io.emit('playerListUpdate', playerList);
+		}
+	});
+
+	socket.on('newGame', () => {
+	  console.log('New game requested by gamemaster');
+	  // Reset game state
+	  resetGame();
+	  // Notify all clients that a new game is starting
+	  io.emit('newGameStarted');
+	});
+
+	socket.on('checkGameState', () => {
+		socket.emit('gameState', {
+			gameInProgress,
+			currentGame: currentQuiz ? {
+				name: currentQuiz.name,
+				id: currentQuiz._id
+			} : null
+		});
+	});
+
+	socket.on('requestGameData', async () => {
+		console.log('Game data requested');
+		if (gameInProgress && currentQuiz) {
+			if (!questions || Object.keys(questions).length === 0) {
+				try {
+					await loadGameData(currentQuiz._id);
+				} catch (error) {
+					console.error('Error loading game data:', error);
+					socket.emit('gameError', { message: 'Failed to load game data' });
+					return;
+				}
+			}
+			
+			socket.emit('gameData', {
+				categories,
+				questions,
+				currentGame: {
+					name: currentQuiz.name,
+					id: currentQuiz._id
+				}
+			});
+
+			// Send game name for connection status
+			socket.emit('updateConnectionStatus', {
+				status: 'connected',
+				gameName: currentQuiz.name
+			});
+		}
+	});
+
+	socket.on('requestPlayerList', () => {
+		console.log('Player list requested');
+		const playerList = Object.values(players).map(p => ({
+			name: p.name,
+			socketId: p.socketId
+		}));
+		console.log('Sending player list:', playerList);
+		io.emit('playerListUpdate', playerList);
+	});
+
+	socket.on('startGame', async (quizId) => {
+		console.log('Starting game with quiz:', quizId);
+		if (!gameInProgress) {
+			try {
+				await loadGameData(quizId);
+				gameInProgress = true;
+				io.emit('gameStarted', { 
+					quizName: currentQuiz.name 
+				});
+				// Send updated connection status to all clients
+				io.emit('updateConnectionStatus', {
+					status: 'connected',
+					gameName: currentQuiz.name
+				});
+			} catch (error) {
+				console.error('Error starting game:', error);
+				socket.emit('gameError', { message: 'Failed to start game: ' + error.message });
+			}
+		} else {
+			socket.emit('gameError', { message: 'A game is already in progress' });
+		}
+	});
+
+	socket.on('selectQuestion', (data) => {
+		console.log('Question selected:', data);
+		if (!validateQuestion(data)) {
+			return socket.emit('gameError', { message: 'Invalid question selection data' });
+		}
+
+		const categoryQuestions = questions[data.category];
+		currentQuestion = categoryQuestions.find(q => q.value === parseInt(data.value));
+		
+		if (!currentQuestion) {
+			return socket.emit('gameError', { message: 'Invalid question selected' });
+		}
+
+		// Reset buzzed player
+		buzzedInPlayer = null;
+
+		// First emit question selected
+		io.emit('questionSelected', {
+			category: data.category,
+			value: data.value,
+			question: currentQuestion.question,
+			answer: currentQuestion.answer,
+			timeLimit: config.timers.questionSplashSeconds
+		});
+
+		// Then explicitly enable buzzers
+		console.log('Enabling buzzers for all players');
+		io.emit('enableBuzzers');
+	});
+
+	socket.on('playerBuzzIn', (data) => {
+		console.log('Player buzzed in:', data.playerName);
+		if (gameInProgress && currentQuestion && !buzzedInPlayer && 
+			players[socket.id] && players[socket.id].name === data.playerName) {
+			
+			// Play buzz sound
+			playServerAudio('playerBuzzed');
+			
+			buzzedInPlayer = socket.id;
+			if (!currentQuestion.attemptedPlayers) {
+				currentQuestion.attemptedPlayers = [];
+			}
+			currentQuestion.attemptedPlayers.push(socket.id);
+			
+			io.emit('cancelQuestionDisplay');
+			io.emit('playerBuzzed', {
+				playerName: data.playerName,
+				playerId: socket.id,
+				timeLimit: GAME_TIMERS.PLAYER_ANSWER
+			});
+		}
+	});
+
+	socket.on('answerResult', (result) => {
+		if (buzzedInPlayer && currentQuestion) {
+			const player = players[buzzedInPlayer];
+			if (result.correct) {
+				playServerAudio('correctAnswer');
+				player.score += currentQuestion.value;
+				if (currentQuestion) {
+					currentQuestion.answered = true;
+				}
+				io.emit('correctAnswer', {
+					playerName: player.name,
+					newScore: player.score,
+					category: currentQuestion.category,
+					value: currentQuestion.value
+				});
+				currentQuestion = null;
+				buzzedInPlayer = null;
+				io.emit('disableBuzzers');
+			} else {
+				playServerAudio('wrongAnswer');
+				player.score -= currentQuestion.value;
+				io.emit('wrongAnswer', {
+					playerName: player.name,
+					newScore: player.score,
+					playerId: buzzedInPlayer
+				});
+				
+				// Show question again with reduced time
+				const reducedTime = Math.floor(config.timers.questionSplashSeconds / 3);
+				console.log('Showing question splash with reduced time:', reducedTime);
+				io.emit('showQuestionSplash', {
+					question: currentQuestion.question,
+					timeLimit: reducedTime
+				});
+				
+				// Enable buzzers for all players except the one who just answered
+				const activePlayers = Object.keys(players).filter(id => id !== buzzedInPlayer);
+				buzzedInPlayer = null;
+				io.emit('enableBuzzersForPlayers', { activePlayers });
+			}
+			io.emit('updateScores', getScores());
+		}
+	});
+
+	socket.on('questionAnswered', (data) => {
+		if (currentQuestion) {
+			// Mark the question as answered in the questions object
+			const categoryQuestions = questions[currentQuestion.category];
+			const question = categoryQuestions.find(q => q.value === currentQuestion.value);
+			if (question) {
+				question.answered = true;
+				console.log(`Marked question as answered: ${currentQuestion.category} - $${currentQuestion.value}`);
+			}
+			
+			io.emit('questionAnswered', {
+				category: currentQuestion.category,
+				value: currentQuestion.value
+			});
+			currentQuestion = null;
+			buzzedInPlayer = null;
+			io.emit('hideQuestionSplash');
+		}
+		if (areAllQuestionsAnswered()) {
+		  const finalScores = getFinalScores();
+		  io.emit('gameOver', { finalScores });
+		}
+	});
+
+    socket.on('nextQuestion', () => {
+        console.log('Moving to next question');
+        if (currentQuestion) {
+            io.emit('questionAnswered', {
+                category: currentQuestion.category,
+                value: currentQuestion.value
+            });
+            currentQuestion = null;
+            buzzedInPlayer = null;
+            io.emit('disableBuzzers');
+        }
+    });
+
+
+	socket.on('timerExpired', (data) => {
+	  if (data.type === 'questionSplash') {
+		if (currentQuestion) {
+		  // Mark the question as answered in the questions object
+		  const categoryQuestions = questions[currentQuestion.category];
+		  const question = categoryQuestions.find(q => q.value === currentQuestion.value);
+		  if (question) {
+			question.answered = true;
+			console.log(`Marked question as answered (timeout): ${currentQuestion.category} - $${currentQuestion.value}`);
+		  }
+		  
+		  // Notify all clients that question is answered
+		  io.emit('questionAnswered', { category: currentQuestion.category, value: currentQuestion.value });
+		  playServerAudio('timerTimeout');
+		  currentQuestion = null;
+		  buzzedInPlayer = null;
+		  io.emit('hideQuestionSplash');
+		  io.emit('disableBuzzers');
+		}
+	  } else if (data.type === 'playerAnswer' && buzzedInPlayer) {
+		const player = players[buzzedInPlayer];
+		player.score -= currentQuestion.value;
+
+		// Mark the question as answered
+		const categoryQuestions = questions[currentQuestion.category];
+		const question = categoryQuestions.find(q => q.value === currentQuestion.value);
+		if (question) {
+		  question.answered = true;
+		  console.log(`Marked question as answered (answer timeout): ${currentQuestion.category} - $${currentQuestion.value}`);
+		}
+
+		io.emit('wrongAnswer', { playerName: player.name, newScore: player.score, playerId: buzzedInPlayer });
+		io.emit('questionAnswered', { category: currentQuestion.category, value: currentQuestion.value });
+
+		// Clear game state
+		buzzedInPlayer = null;
+		io.emit('hideQuestionSplash');
+		io.emit('updateScores', getScores());
+	  }
+	});
+
+	socket.on('disconnect', (reason) => {
+		console.log(`Client disconnected: ${socket.id}, Reason: ${reason}`);
+		if (players[socket.id]) {
+			delete players[socket.id];
+			console.log('Player disconnected, remaining players:', players);
+			broadcastPlayerList();
+		}
+	});
+
+	socket.on('leaveGame', (data) => {
+		console.log('Player/Gamemaster leaving game:', data.userName);
+		
+		if (data.userName === config.gamemaster) {
+			// Handle gamemaster leaving
+			console.log('Gamemaster left the game');
+			// Reset game state
+			currentQuiz = null;
+			gameInProgress = false;
+			currentQuestion = null;
+			buzzedInPlayer = null;
+			categories = [];
+			questions = {};
+			
+			// Notify all clients that the game has ended
+			io.emit('gameEnded', { reason: 'Gamemaster left the game' });
+			io.emit('updateConnectionStatus', {
+				status: 'connected',
+				gameName: null
+			});
+		} else if (players[socket.id]) {
+			// Remove player from game
+			console.log(`Removing player: ${players[socket.id].name}`);
+			delete players[socket.id];
+			
+			// If this was the buzzed in player, reset state
+			if (buzzedInPlayer === socket.id) {
+				buzzedInPlayer = null;
+				if (currentQuestion) {
+					// Show question again with reduced time
+					io.emit('showQuestionSplash', {
+						question: currentQuestion.question,
+						timeLimit: Math.floor(config.timers.questionSplashSeconds / 3)
+					});
+					
+					// Enable buzzers for remaining players
+					const activePlayers = Object.keys(players);
+					io.emit('enableBuzzersForPlayers', { activePlayers });
+				}
+			}
+			
+			// Broadcast updated player list
+			broadcastPlayerList();
+			io.emit('updateScores', getScores());
+		}
+	});
+
+
+	socket.on('debug', (data) => {
+		if (debugEnabled) {
+			const clientInfo = `[${socket.id}${data.userName ? '/' + data.userName : ''}${data.userRole ? '/' + data.userRole : ''}]`;
+			console.log(`DEBUG ${clientInfo}:`, data.message);
+			if (data.data) {
+				console.log('Debug data:', data.data);
+			}
+		}
+	});
+
+	const lastScoreAdjustment = {};
+
+	socket.on('adjustPlayerScore', (data) => {
+	  const { playerId, scoreChange } = data;
+	  
+	  // Check if this is a recent adjustment for the same player
+	  const now = Date.now();
+	  if (lastScoreAdjustment[playerId] && 
+		  (now - lastScoreAdjustment[playerId].timestamp < 1000) && 
+		  lastScoreAdjustment[playerId].change === scoreChange) {
+		console.log('Duplicate score adjustment prevented');
+		return;
+	  }
+	  
+	  if (players[playerId]) {
+		const player = players[playerId];
+		player.score += scoreChange;
+		
+		console.log(`Score adjusted for ${player.name}. Change: $${scoreChange}. New score: $${player.score}`);
+		
+		// Record the last adjustment
+		lastScoreAdjustment[playerId] = {
+		  timestamp: now,
+		  change: scoreChange
+		};
+		
+		// Broadcast updated scores to ALL clients
+		io.emit('updateScores', getScores());
+	  }
+	});
+
+	socket.on('playAudio', (data) => {
+		const { clipName } = data;
+		playServerAudio(clipName);
+	});
+
 });
 
 app.post('/api/upload-game', async (req, res) => {
@@ -185,11 +784,16 @@ async function loadGameData(quizId) {
         if (!currentQuiz) {
             throw new Error('Quiz not found');
         }
-        
+
         const allQuestions = await Question.find({ quiz: quizId });
         if (allQuestions.length === 0) {
             throw new Error('No questions found for this quiz');
         }
+
+        // Reset all players' scores to 0
+        Object.values(players).forEach(player => {
+            player.score = 0;
+        });
 
         // If we already have questions loaded, preserve their answered state
         const existingAnsweredState = {};
@@ -212,7 +816,7 @@ async function loadGameData(quizId) {
             questions[category] = allQuestions
                 .filter(q => q.category === category)
                 .map(q => ({
-                    ...q.toObject(),
+                    ...q,
                     answered: existingAnsweredState[`${category}-${q.value}`] || false
                 }));
         });
@@ -223,7 +827,10 @@ async function loadGameData(quizId) {
                 answeredQuestions: questions[cat].filter(q => q.answered).length
             }))
         );
-        
+
+        // Start periodic score updates
+        startPeriodicScoreUpdates();
+
         return true;
     } catch (error) {
         console.error('Error loading game data:', error);
@@ -231,13 +838,38 @@ async function loadGameData(quizId) {
     }
 }
 
-// Helper functions
-function getScores() {
-    return Object.values(players).reduce((scores, player) => {
-        scores[player.name] = player.score;
-        return scores;
-    }, {});
+function startPeriodicScoreUpdates() {
+    // Clear any existing interval to prevent multiple intervals
+    if (global.scoreUpdateInterval) {
+        clearInterval(global.scoreUpdateInterval);
+    }
+
+    // Start a new interval to update scores every 3 seconds
+    global.scoreUpdateInterval = setInterval(() => {
+        io.emit('updateScores', getScores());
+    }, 3000);
 }
+
+// Add this function to stop periodic score updates when needed
+function stopPeriodicScoreUpdates() {
+    if (global.scoreUpdateInterval) {
+        clearInterval(global.scoreUpdateInterval);
+        global.scoreUpdateInterval = null;
+    }
+}
+
+
+
+// Helper functions
+
+function getScores() {
+  const scores = {};
+  Object.values(players).forEach(player => {
+    scores[player.name] = player.score;
+  });
+  return scores;
+}
+
 
 function resetGame() {
     currentQuiz = null;
@@ -671,8 +1303,19 @@ io.on('connection', (socket) => {
 		}
 	});
 
+	const lastScoreAdjustment = {};
+
 	socket.on('adjustPlayerScore', (data) => {
 	  const { playerId, scoreChange } = data;
+	  
+	  // Check if this is a recent adjustment for the same player
+	  const now = Date.now();
+	  if (lastScoreAdjustment[playerId] && 
+		  (now - lastScoreAdjustment[playerId].timestamp < 1000) && 
+		  lastScoreAdjustment[playerId].change === scoreChange) {
+		console.log('Duplicate score adjustment prevented');
+		return;
+	  }
 	  
 	  if (players[playerId]) {
 		const player = players[playerId];
@@ -680,17 +1323,67 @@ io.on('connection', (socket) => {
 		
 		console.log(`Score adjusted for ${player.name}. Change: $${scoreChange}. New score: $${player.score}`);
 		
-		// Broadcast updated scores to all clients
+		// Record the last adjustment
+		lastScoreAdjustment[playerId] = {
+		  timestamp: now,
+		  change: scoreChange
+		};
+		
+		// Broadcast updated scores to ALL clients
 		io.emit('updateScores', getScores());
 	  }
 	});
 
 });
 
+function getIPv4Addresses() {
+  const networkInterfaces = os.networkInterfaces();
+  const ipv4Addresses = [];
+
+  for (const interfaceName in networkInterfaces) {
+    for (const interface of networkInterfaces[interfaceName]) {
+      // Filter for IPv4 addresses that are:
+      // 1. Not internal (loopback)
+      // 2. Not link-local (169.254.x.x)
+      if (interface.family === 'IPv4' && 
+          !interface.internal && 
+          !interface.address.startsWith('169.254.')) {
+        ipv4Addresses.push({
+          interface: interfaceName,
+          address: interface.address
+        });
+      }
+    }
+  }
+
+  return ipv4Addresses;
+}
+
+function playServerAudio(clipName) {
+    if (audioClips[clipName]) {
+        const audioPath = path.join(__dirname, audioClips[clipName]);
+        const vlcPath = 'C:\\Program Files\\VideoLAN\\VLC\\vlc.exe';
+        const command = `"${vlcPath}" --intf dummy --play-and-exit --quiet "${audioPath}" vlc://quit`;
+
+        console.log(`Playing audio: ${clipName} from path: ${audioPath}`);
+        exec(command, (err, stdout, stderr) => {
+            if (err) {
+                console.error(`Error playing audio ${clipName}:`, err);
+            }
+        });
+    }
+}
+
 // Start the server
 const PORT = config.port;
-server.listen(PORT,'0.0.0.0', () => {
-    console.log(`Server running on port ${PORT}`);
+server.listen(PORT, '0.0.0.0', () => {
+    console.log(`Server running on sport ${PORT}`);
+    // Print out all IPv4 addresses
+    console.log('Available IPv4 Addresses:');
+    const addresses = getIPv4Addresses();
+    addresses.forEach(addr => {
+        console.log(`Interface: ${addr.interface}, IP: ${addr.address}`);
+    });
 }).on('error', (err) => {
     console.error('Error starting server:', err);
     process.exit(1);
