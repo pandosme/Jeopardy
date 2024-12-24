@@ -286,22 +286,20 @@ socket.on('enableBuzzersForPlayers', (data) => {
 });
 
 socket.on('updateScores', (scores) => {
-    if (userRole === 'gamemaster') {
-        const playersScores = document.getElementById('players-scores');
-        if (playersScores) {
-            playersScores.innerHTML = '';
-            Object.entries(scores)
-                .sort((a, b) => b[1] - a[1]) // Sort by score descending
-                .forEach(([name, score]) => {
-                    const scoreItem = document.createElement('div');
-                    scoreItem.className = 'player-score-item';
-                    scoreItem.innerHTML = `
-                        <span>${name}</span>
-                        <span>$${score}</span>
-                    `;
-                    playersScores.appendChild(scoreItem);
-                });
-        }
+    const playersScores = document.getElementById('players-scores');
+    if (playersScores) {
+        playersScores.innerHTML = '';
+        Object.entries(scores)
+            .sort((a, b) => b[1] - a[1]) // Sort by score descending
+            .forEach(([name, score]) => {
+                const scoreItem = document.createElement('div');
+                scoreItem.className = 'player-score-item';
+                scoreItem.innerHTML = `
+                    <span>${name}</span>
+                    <span>$${score}</span>
+                `;
+                playersScores.appendChild(scoreItem);
+            });
     }
 });
 
@@ -692,43 +690,44 @@ function setupScoreAdjustmentModal() {
   const modal = document.getElementById('adjust-score-modal');
   const closeModalButton = modal.querySelector('.close-modal');
   const playerSelect = document.getElementById('player-select');
+  const adjustmentTypeSelect = document.getElementById('adjustment-type');
+  const scoreValueSelect = document.getElementById('score-value');
   const adjustScoreForm = document.getElementById('adjust-score-form');
 
-  // Populate player select dropdown
-  function populatePlayerSelect(playerList) {
-    playerSelect.innerHTML = '<option value="">Select a player</option>';
-    playerList.forEach(player => {
-      const option = document.createElement('option');
-      option.value = player.socketId;
-      option.textContent = `${player.name} ($${player.score || 0})`;
-      playerSelect.appendChild(option);
-    });
-  }
+  // Disable submit button during submission to prevent multiple clicks
+  const submitButton = adjustScoreForm.querySelector('button[type="submit"]');
 
   // Show modal when button clicked
   openModalButton.addEventListener('click', () => {
+    // Reset form
+    playerSelect.selectedIndex = 0;
+    adjustmentTypeSelect.selectedIndex = 0;
+    scoreValueSelect.selectedIndex = 0;
+    
+    // Reset submit button
+    submitButton.disabled = false;
+    
     // Request player list from server
     socket.emit('requestPlayerList');
-  });
-
-  // Listen for player list update
-  socket.on('playerListUpdate', (playerList) => {
-    populatePlayerSelect(playerList);
-    modal.style.display = 'block';
-  });
-
-  // Close modal
-  closeModalButton.addEventListener('click', () => {
-    modal.style.display = 'none';
   });
 
   // Handle form submission
   adjustScoreForm.addEventListener('submit', (e) => {
     e.preventDefault();
     
+    // Disable submit button to prevent multiple submissions
+    submitButton.disabled = true;
+    
     const playerId = playerSelect.value;
-    const adjustmentType = document.querySelector('input[name="adjustment-type"]:checked').value;
-    const scoreValue = parseInt(document.querySelector('input[name="score-value"]:checked').value);
+    const adjustmentType = adjustmentTypeSelect.value;
+    const scoreValue = parseInt(scoreValueSelect.value);
+
+    // Validate inputs
+    if (!playerId || !adjustmentType || !scoreValue) {
+      alert('Please fill in all fields');
+      submitButton.disabled = false;
+      return;
+    }
 
     // Determine score change direction
     const scoreChange = adjustmentType === 'add' ? scoreValue : -scoreValue;
@@ -741,6 +740,11 @@ function setupScoreAdjustmentModal() {
 
     // Close modal
     modal.style.display = 'none';
+
+    // Re-enable submit button after a short delay
+    setTimeout(() => {
+      submitButton.disabled = false;
+    }, 1000);
   });
 }
 

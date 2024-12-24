@@ -1,0 +1,26 @@
+Category,Value,Question,Answer
+Spelregler,100,Hur många poäng får du för att svara rätt på en 100-poängsfråga?,Vad är 100 poäng?
+Spelregler,200,Vad händer om du svarar fel på en fråga?,Vad är att turen går vidare till nästa spelare?
+Spelregler,300,Hur väljer du en kategori och ett poängvärde?,Vad är att säga kategorin och poängvärdet högt?
+Spelregler,400,Vad måste du göra innan du ger ditt svar?,Vad är att trycka på summern eller räcka upp handen?
+Spelregler,500,Hur lång tid har du på dig att svara efter att frågan lästs upp?,Vad är 30 sekunder?
+Kategorier,100,Vilken färg har ofta kategorin Geografi på spelbrädet?,Vad är blå?
+Kategorier,200,Hur många kategorier finns det vanligtvis i en spelomgång?,Vad är 6 kategorier?
+Kategorier,300,Vad händer om du väljer en kategori som redan är tom?,Vad är att du måste välja en annan kategori?
+Kategorier,400,Vem bestämmer kategorierna i spelet?,Vad är spelledaren eller quizförfattaren?
+Kategorier,500,Vad kallas det när alla frågor i en kategori har besvarats?,Vad är att kategorin är uttömd?
+Poäng,100,Vilket är det lägsta poängvärdet i spelet?,Vad är 100 poäng?
+Poäng,200,Hur mycket mer värd är en 300-poängsfråga jämfört med en 100-poängsfråga?,Vad är 200 poäng?
+Poäng,300,Vad händer med poängen om ingen svarar rätt på en fråga?,Vad är att poängen inte delas ut?
+Poäng,400,Hur många poäng behöver du vanligtvis för att vinna spelet?,Vad är det beror på spelreglerna eller bestäms i förväg?
+Poäng,500,Vad händer om två spelare har samma poäng i slutet av spelet?,Vad är att det blir särspel eller oavgjort?
+Svarsteknik,100,I vilken form ska svaret ges?,Vad är i form av en fråga?
+Svarsteknik,200,Vad bör du göra om du är osäker på svaret?,Vad är att gissa eller passa?
+Svarsteknik,300,Hur specifikt måste ditt svar vara för att godkännas?,Vad är det beror på frågan och domarens bedömning?
+Svarsteknik,400,Vad händer om du svarar innan frågan är färdigläst?,Vad är att du riskerar att svara fel om du inte hört hela frågan?
+Svarsteknik,500,Hur hanteras stavfel i skriftliga svar?,Vad är att domaren vanligtvis godkänner svar med mindre stavfel?
+Spelstrategi,100,Vilken är en bra strategi när du börjar spelet?,Vad är att välja lägre poängvärden för att värma upp?
+Spelstrategi,200,Hur kan du utnyttja dina motståndares svagheter?,Vad är att välja kategorier de är mindre bra på?
+Spelstrategi,300,När kan det vara klokt att chansa på en svår fråga?,Vad är när du ligger efter och behöver komma ikapp?
+Spelstrategi,400,Hur kan du använda Daily Doubles till din fördel?,Vad är att satsa stort när du känner dig säker på kategorin?
+Spelstrategi,500,Vilken strategi kan du använda i Final Jeopardy?,Vad är att satsa baserat på din position och kunskap om kategorin?
