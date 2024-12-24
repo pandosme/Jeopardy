@@ -87,12 +87,12 @@ socket.on('userRegistered', (data) => {
         socket.emit('requestPlayerList');
     }
 
-    if (data.role === 'player') {
-        showView('player');
-        document.getElementById('player-name').textContent = data.name;
-        document.getElementById('player-score').textContent = data.score;
-        setupLeaveButton(); // Add this
-    }
+	if (data.role === 'player') {
+		showView('player');
+		document.getElementById('player-name').textContent = data.name;
+		document.getElementById('player-score').textContent = data.score;
+		setupLeaveButton();
+	}
 });
 
 socket.on('playerListUpdate', (playerList) => {
@@ -559,12 +559,29 @@ function setupGameMasterButtons() {
   const incorrectButton = document.getElementById('incorrect-button');
   const openAdjustScoreModalButton = document.getElementById('open-adjust-score-modal');
 
-  // Add this line to set up the score adjustment modal
+  // Setup score adjustment modal
   setupScoreAdjustmentModal();
 
-  // Rest of the existing code...
+  // Add event listeners for Correct and Wrong buttons
+  if (correctButton) {
+    correctButton.addEventListener('click', () => {
+      socket.emit('answerResult', { correct: true });
+      // Clear gamemaster view after correct answer
+      document.getElementById('gm-question').textContent = '';
+      document.getElementById('gm-answer').textContent = '';
+      document.getElementById('buzzed-player').textContent = '';
+    });
+  }
 
-  // Add event listener for the "Adjust Score" button
+  if (incorrectButton) {
+    incorrectButton.addEventListener('click', () => {
+      socket.emit('answerResult', { correct: false });
+      // Keep the question and answer visible for next player
+      document.getElementById('buzzed-player').textContent = '';
+    });
+  }
+
+  // Add event listener for Adjust Score button
   if (openAdjustScoreModalButton) {
     openAdjustScoreModalButton.addEventListener('click', () => {
       const modal = document.getElementById('adjust-score-modal');
@@ -736,31 +753,29 @@ function setupScoreAdjustmentModal() {
   });
 
   // Handle form submission
-  adjustScoreForm.addEventListener('submit', (e) => {
-    e.preventDefault();
-    
-    const playerId = playerSelect.value;
-    const adjustmentType = adjustmentTypeSelect.value;
-    const scoreValue = parseInt(scoreValueSelect.value);
+	adjustScoreForm.addEventListener('submit', (e) => {
+	  e.preventDefault();
+	  const playerId = playerSelect.value;
+	  const adjustmentType = adjustmentTypeSelect.value;
+	  const scoreValue = parseInt(scoreValueSelect.value);
 
-    // Validate inputs
-    if (!playerId || !adjustmentType || !scoreValue) {
-      alert('Please fill in all fields');
-      return;
-    }
+	  console.log('Score adjustment details:', { 
+		playerId, 
+		adjustmentType, 
+		scoreValue 
+	  });
 
-    // Determine score change direction
-    const scoreChange = adjustmentType === 'add' ? scoreValue : -scoreValue;
+	  // Validate inputs
+	  if (!playerId || !adjustmentType || !scoreValue) {
+		alert('Please fill in all fields');
+		return;
+	  }
 
-    // Emit score adjustment event
-    socket.emit('adjustPlayerScore', {
-      playerId,
-      scoreChange
-    });
-
-    // Close modal
-    modal.style.display = 'none';
-  });
+	  const scoreChange = adjustmentType === 'add' ? scoreValue : -scoreValue;
+	  
+	  socket.emit('adjustPlayerScore', { playerId, scoreChange });
+	  modal.style.display = 'none';
+	});
 }
 
 // Event Listeners
