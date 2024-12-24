@@ -555,30 +555,25 @@ function markQuestionAsAnswered(category, value) {
 }
 
 function setupGameMasterButtons() {
-    const correctButton = document.getElementById('correct-button');
-    const incorrectButton = document.getElementById('incorrect-button');
-    // Remove this line
-    // setupScoreAdjustmentModal();
+  const correctButton = document.getElementById('correct-button');
+  const incorrectButton = document.getElementById('incorrect-button');
+  const openAdjustScoreModalButton = document.getElementById('open-adjust-score-modal');
 
-    if (correctButton) {
-        correctButton.addEventListener('click', () => {
-            debug('Correct button clicked');
-            socket.emit('answerResult', { correct: true });
-            // Clear gamemaster view after correct answer
-            document.getElementById('gm-question').textContent = '';
-            document.getElementById('gm-answer').textContent = '';
-            document.getElementById('buzzed-player').textContent = '';
-        });
-    }
+  // Add this line to set up the score adjustment modal
+  setupScoreAdjustmentModal();
 
-    if (incorrectButton) {
-        incorrectButton.addEventListener('click', () => {
-            debug('Wrong button clicked');
-            socket.emit('answerResult', { correct: false });
-            // Keep the question and answer visible for next player
-            document.getElementById('buzzed-player').textContent = '';
-        });
-    }
+  // Rest of the existing code...
+
+  // Add event listener for the "Adjust Score" button
+  if (openAdjustScoreModalButton) {
+    openAdjustScoreModalButton.addEventListener('click', () => {
+      const modal = document.getElementById('adjust-score-modal');
+      modal.style.display = 'block';
+      
+      // Request player list from server to populate dropdown
+      socket.emit('requestPlayerList');
+    });
+  }
 }
 
 function setupLeaveButton() {
